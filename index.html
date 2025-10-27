@@ -1,41 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Simple Data Displayer - Download</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      text-align: center;
-      padding-top: 100px;
-    }
-    h1 {
-      color: #333;
-    }
-    a.download-btn {
-      display: inline-block;
-      margin-top: 30px;
-      padding: 15px 25px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 16px;
-      transition: background-color 0.3s ease;
-    }
-    a.download-btn:hover {
-      background-color: #0056b3;
-    }
+    body { font-family: system-ui, sans-serif; background:#f5f5f5; text-align:center; padding:6rem 1rem; }
+    h1 { color:#333; margin-bottom:1rem; }
+    p { color:#555; }
+    .btn { display:inline-block; margin-top:1.5rem; padding:14px 22px; background:#0b5fff; color:#fff; 
+           text-decoration:none; border-radius:8px; font-weight:600; }
+    .btn:focus, .btn:hover { filter:brightness(0.95); }
+    .hint { margin-top:0.75rem; font-size:0.9rem; color:#666; }
   </style>
 </head>
 <body>
   <h1>Download Simple Data Displayer (v0.1.0)</h1>
-  <a 
-    class="download-btn" 
-    href="https://raw.githubusercontent.com/readcreate/simple-data-displayer/main/SimpleDataDisplayer-v0.1.0-AnshulKumar.html" 
-    download="SimpleDataDisplayer-v0.1.0-AnshulKumar.html">
-    ⬇️ Download HTML File
+  <p>Click the button to save the HTML app to your computer.</p>
+
+  <!-- Same-origin link (most browsers will honor `download` now) -->
+  <a id="dlLink" class="btn" 
+     href="./SimpleDataDisplayer-v0.1.0-AnshulKumar.html" 
+     download="SimpleDataDisplayer-v0.1.0-AnshulKumar.html">
+    ⬇️ Download the app!
   </a>
+
+  <div class="hint" id="hint">If it opens instead of downloading, click again — the page will force a download.</div>
+
+  <script>
+    // Fallback: if the browser ignored `download` on first click, force it via Blob on second click
+    const link = document.getElementById('dlLink');
+    let attempted = false;
+
+    link.addEventListener('click', async (e) => {
+      if (attempted) return; // second click will use the object URL set below
+      // Try to detect if `download` will likely be ignored (some browsers do with text/html)
+      // We'll preemptively create a Blob URL and swap href to guarantee a download on next click.
+      e.preventDefault();
+      try {
+        const res = await fetch('./SimpleDataDisplayer-v0.1.0-AnshulKumar.html', { cache: 'no-store' });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', 'SimpleDataDisplayer-v0.1.0-AnshulKumar.html');
+        document.getElementById('hint').textContent = 'Ready! Click the button again to save the file.';
+      } catch (err) {
+        document.getElementById('hint').textContent = 'If it still opens in the browser, right-click the button and choose “Save link as…”.';
+      } finally {
+        attempted = true;
+      }
+    });
+  </script>
 </body>
 </html>
