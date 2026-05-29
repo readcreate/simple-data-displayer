@@ -1,0 +1,509 @@
+---
+title: "HE930 R Tutorial: Predicting Student Math Performance"
+output:
+  word_document: default
+---
+
+```{r, include=FALSE}
+t <- 0
+```
+
+# Goals
+
+1. Practice using decision tree and logistic regression models to predict student math performance using the `hsb2` dataset.
+
+1. Fine-tune predictive models.
+
+1. Compare the results of different predictive models and choose the best one.
+
+1. Brainstorm about how the predictions would be used in an educational setting.
+
+
+# Instructions
+
+* **Anywhere you see the word `MODIFY` is one place where you might consider making changes to the code.**
+
+* If you are not certain about any interpretations of results---especially confusion matrices, accuracy, sensitivity, and specificity---stop and ask an instructor for assistance.
+
+* **After running each step, write at least one sentence interpreting or describing the result directly in this R Markdown file, in the "Result" placeholder below each code chunk.**
+
+* Once you finish, please knit and upload that knitted file to the corresponding D2L dropbox. 
+
+For most of this tutorial, you will run the code below in an R script or R markdown file in RStudio on your own computer. You will also make minor modifications to this code.
+
+# Load relevant packages
+
+**Step `r t<-t+1; t`**: Load packages
+
+```{r, message=FALSE}
+if (!require(PerformanceAnalytics)) install.packages('PerformanceAnalytics')
+if (!require(rpart)) install.packages('rpart')
+if (!require(rpart.plot)) install.packages('rpart.plot')
+if (!require(car)) install.packages('car')
+if (!require(rattle)) install.packages('rattle')
+if (!require(openintro)) install.packages('openintro')
+if (!require(dplyr)) install.packages('dplyr')
+if (!require(fastDummies)) install.packages('fastDummies')
+
+library(PerformanceAnalytics)
+library(rpart)
+library(rpart.plot)
+library(car)
+library(rattle)
+library(openintro)
+library(dplyr)
+library(fastDummies)
+```
+
+Result: 
+
+
+# Import and prepare data
+
+We will use the `hsb2` dataset (High School and Beyond, 200 students), available from the `openintro` package.
+
+**Step `r t<-t+1; t`**: Load data
+
+```{r}
+d <- hsb2
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Save a copy of the original dataset before any modifications
+
+```{r}
+d.original <- d
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: List variables
+
+```{r}
+names(d)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Clean variable names
+
+```{r}
+names(d) <- make.names(names(d))
+names(d)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Check for missing values
+
+```{r}
+colSums(is.na(d))
+sum(is.na(d))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Remove ID column and convert categorical variables to dummy variables
+
+```{r}
+d <- d %>% select(-id)
+
+d <- dummy_cols(d, remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+names(d)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Confirm all variables are now numeric
+
+```{r}
+str(d)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Calculate number of observations
+
+```{r}
+nrow(d)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Generate binary version of dependent variable, `math`.
+
+```{r}
+d$passed <- ifelse(d$math > 45, 1, 0)
+```
+
+Result: 
+
+**We're assuming that a math score above 45 is a passing score, and 45 or below is failing.**
+
+**Step `r t<-t+1; t`**: Descriptive statistics for `math` as a continuous numeric variable.
+
+```{r}
+summary(d$math)
+```
+
+Result: 
+
+```{r}
+sd(d$math)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Who passed and failed, binary qualitative categorical variable.
+
+```{r}
+with(d, table(passed, useNA = "always"))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Histogram
+
+```{r}
+hist(as.numeric(d$math), main = "Distribution of Math Scores", xlab = "Math score")
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Scatterplots — do "soft skills" like reading and writing predict math performance?
+
+```{r}
+plot(d$read, d$math, xlab = "Reading score", ylab = "Math score") # MODIFY which variables you plot
+```
+
+Result: 
+
+```{r}
+plot(d$write, d$math, xlab = "Writing score", ylab = "Math score")
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Selected correlations among soft-skill and math variables
+
+```{r}
+chart.Correlation(d[c("math", "read", "write", "socst")], histogram = TRUE, pch = 19)
+```
+
+Result: 
+
+
+# Divide training and testing data
+
+**Step `r t<-t+1; t`**: Divide data
+
+```{r}
+trainingRowIndex <- sample(1:nrow(d), 0.75*nrow(d))  # row indices for training data
+dtrain <- d[trainingRowIndex, ]   # model training data
+dtest  <- d[-trainingRowIndex, ]  # test data
+```
+
+Result: 
+
+#### Training data characteristics
+
+**Step `r t<-t+1; t`**: Examine training data
+
+```{r}
+nrow(dtrain)
+with(dtrain, table(passed, useNA = "always"))
+```
+
+Result: 
+
+#### Testing data characteristics
+
+**Step `r t<-t+1; t`**: Examine testing data
+
+```{r}
+nrow(dtest)
+with(dtest, table(passed, useNA = "always"))
+```
+
+Result: 
+
+# Decision tree model -- regression tree
+
+Activity summary:
+
+* Goal: predict continuous outcome `math`, using a regression tree.
+* Start by using all variables to make a decision tree. Check predictive capability.
+* Remove variables to make predictions with less information.
+* Modify cutoff thresholds and see how confusion matrix changes.
+* Anywhere you see the word `MODIFY` is one place where you might consider making changes to the code.
+* Figure out which students to remediate.
+
+#### Train and inspect model
+
+**Step `r t<-t+1; t`**: Train a decision tree model
+
+```{r}
+tree1 <- rpart(math ~ read + write + socst + gender_male + race_asian + race_hispanic +
+                 race_white + ses_middle + ses_high + schtyp_private + prog_academic +
+                 prog_vocational,
+               data = dtrain, method = 'anova')
+# MODIFY. Complete the next step (visualize the tree) and then come back to this
+# and try removing some predictors. For example, try removing read and write
+# to see if background variables alone can predict math performance.
+
+summary(tree1)
+```
+
+Result: 
+
+
+#### Tree visualization
+
+**Step `r t<-t+1; t`**: Visualize decision tree model in two ways.
+
+```{r}
+prp(tree1)
+fancyRpartPlot(tree1, caption = "Regression Tree")
+```
+
+Result: 
+
+#### Test model
+
+**Step `r t<-t+1; t`**: Make predictions on testing data, using trained model
+
+```{r}
+dtest$tree1.pred <- predict(tree1, newdata = dtest)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Visualize predictions
+
+```{r}
+with(dtest, plot(tree1.pred, math,
+                 main = "Actual vs Predicted, testing data",
+                 xlab = "Predicted math score",
+                 ylab = "Actual math score"))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Make confusion matrix.
+
+```{r}
+PredictionCutoff <- 45 # MODIFY. Compare values in the 43-47 range.
+
+dtest$tree1.pred.passed <- ifelse(dtest$tree1.pred > PredictionCutoff, 1, 0)
+
+(cm1 <- with(dtest, table(tree1.pred.passed, passed)))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Calculate accuracy
+
+```{r}
+CorrectPredictions1 <- cm1[1,1] + cm1[2,2]
+TotalStudents1 <- nrow(dtest)
+
+(Accuracy1 <- CorrectPredictions1/TotalStudents1)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Sensitivity (proportion of people who actually failed that were correctly predicted to fail).
+
+```{r}
+(Sensitivity1 <- cm1[1,1]/(cm1[1,1]+cm1[2,1]))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Specificity (proportion of people who actually passed that were correctly predicted to pass).
+
+```{r}
+(Specificity1 <- cm1[2,2]/(cm1[1,2]+cm1[2,2]))
+```
+
+Result: 
+
+BE SURE TO DOUBLE-CHECK THE CALCULATIONS ABOVE MANUALLY!
+
+**Step `r t<-t+1; t`**: **It is very important** for you, the data analyst, to modify the 45 cutoff assigned as `PredictionCutoff` above to see how you can change the predictions made by the model. Write down what you observe as you change this value and re-run the confusion matrix, accuracy, sensitivity, and specificity code above. What are the implications of your manual modification of this cutoff? *Remind your instructors to discuss this with you, in case they forget!*
+
+# Decision tree model -- classification tree
+
+Activity summary:
+
+* Goal: predict binary outcome `passed`, using a classification tree.
+* Start by using all variables to make a decision tree. Check predictive capability.
+* Remove variables to make predictions with less information.
+* Modify cutoff thresholds and see how confusion matrix changes.
+* Anywhere you see the word `MODIFY` is one place where you might consider making changes to the code.
+* Figure out which students to remediate.
+
+#### Train and inspect model
+
+**Step `r t<-t+1; t`**: Train a decision tree model
+
+```{r}
+tree2 <- rpart(passed ~ read + write + socst + gender_male + race_asian + race_hispanic +
+                 race_white + ses_middle + ses_high + schtyp_private + prog_academic +
+                 prog_vocational,
+               data = dtrain, method = "class")
+# MODIFY. Try removing read and write and see how predictions change.
+
+summary(tree2)
+```
+
+Result: 
+
+#### Tree Visualization
+
+**Step `r t<-t+1; t`**: Visualize decision tree model in two ways
+
+```{r}
+prp(tree2)
+fancyRpartPlot(tree2, caption = "Classification Tree")
+```
+
+Result: 
+
+#### Test model
+
+**Step `r t<-t+1; t`**: Make predictions and confusion matrix on testing data classes, using trained model.
+
+```{r}
+dtest$tree2.pred <- predict(tree2, newdata = dtest, type = 'class')
+# MODIFY. Change 'class' to 'prob'
+
+(cm2 <- with(dtest, table(tree2.pred, passed)))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Make predictions and confusion matrix on testing data using probability cutoffs. *Optional; results not shown.*
+
+```{r, eval=FALSE}
+dtest$tree2.pred <- predict(tree2, newdata = dtest, type = 'prob')
+
+ProbabilityCutoff <- 0.5 # MODIFY. Compare different probability values.
+dtest$tree2.pred.probs <- 1-dtest$tree2.pred[,1]
+
+dtest$tree2.pred.passed <- ifelse(dtest$tree2.pred.probs > ProbabilityCutoff, 1, 0)
+
+(cm2b <- with(dtest, table(tree2.pred.passed, passed)))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Calculate accuracy
+
+```{r}
+CorrectPredictions2 <- cm2[1,1] + cm2[2,2]
+TotalStudents2 <- nrow(dtest)
+
+(Accuracy2 <- CorrectPredictions2/TotalStudents2)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Sensitivity (proportion of people who actually failed that were correctly predicted to fail)
+
+```{r}
+(Sensitivity2 <- cm2[1,1]/(cm2[1,1]+cm2[2,1]))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Specificity (proportion of people who actually passed that were correctly predicted to pass):
+
+```{r}
+(Specificity2 <- cm2[2,2]/(cm2[1,2]+cm2[2,2]))
+```
+
+Result: 
+
+ALSO DOUBLE-CHECK THE CALCULATIONS ABOVE MANUALLY!
+
+# Logistic regression model -- classification
+
+Activity summary:
+
+* Goal: predict binary outcome `passed`, using logistic regression.
+* Start by using a selective set of variables to avoid multicollinearity. Check predictive capability.
+* Remove variables to make predictions with less information.
+* Modify cutoff thresholds and see how confusion matrix changes.
+* Anywhere you see the word `MODIFY` is one place where you might consider making changes to the code.
+* Figure out which students to remediate.
+
+#### Train and inspect model
+
+**Step `r t<-t+1; t`**: Train a logistic regression model
+
+```{r}
+blr1 <- glm(passed ~ read + write + socst + ses_middle + ses_high + prog_academic +
+              prog_vocational + schtyp_private,
+            data = dtrain, family = "binomial")
+# MODIFY. Try removing read and write to see if background variables alone
+# predict passing. Also remove variables flagged for high VIF below.
+
+summary(blr1)
+
+car::vif(blr1)
+```
+
+Result: 
+
+
+#### Test model
+
+**Step `r t<-t+1; t`**: Make predictions on testing data, using trained model.
+
+Predicting probabilities...
+
+```{r}
+dtest$blr1.pred <- predict(blr1, newdata = dtest, type = 'response')
+
+ProbabilityCutoff <- 0.5 # MODIFY. Compare different probability values.
+dtest$blr1.pred.probs <- 1-dtest$blr1.pred
+
+dtest$blr1.pred.passed <- ifelse(dtest$blr1.pred > ProbabilityCutoff, 1, 0)
+
+(cm3 <- with(dtest, table(blr1.pred.passed, passed)))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Calculate accuracy
+
+```{r}
+CorrectPredictions3 <- cm3[1,1] + cm3[2,2]
+TotalStudents3 <- nrow(dtest)
+
+(Accuracy3 <- CorrectPredictions3/TotalStudents3)
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Sensitivity (proportion of people who actually failed that were correctly predicted to fail)
+
+```{r}
+(Sensitivity3 <- cm3[1,1]/(cm3[1,1]+cm3[2,1]))
+```
+
+Result: 
+
+**Step `r t<-t+1; t`**: Specificity (proportion of people who actually passed that were correctly predicted to pass)
+
+```{r}
+(Specificity3 <- cm3[2,2]/(cm3[1,2]+cm3[2,2]))
+```
+
+Result: 
+
+ALSO DOUBLE-CHECK THE CALCULATIONS ABOVE MANUALLY!
+
+**Step `r t<-t+1; t`**: **It is very important** for you, the data analyst, to modify the 0.5 cutoff assigned as `ProbabilityCutoff` above to see how you can change the predictions made by the model. Write down what you observe as you change this value and re-run the confusion matrix, accuracy, sensitivity, and specificity code above. What are the implications of your manual modification of this cutoff? *Remind your instructors to discuss this with you, in case they forget!*
