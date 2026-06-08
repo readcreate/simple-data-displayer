@@ -8,6 +8,8 @@ output:
 t <- 0
 ```
 
+<!-- online link to this file: https://readcreate.github.io/simple-data-displayer/seminar-R-tutorial-HE930.Rmd -->
+
 # Goals
 
 1. Practice using decision tree and logistic regression models to predict student math performance using the `hsb2` dataset.
@@ -27,7 +29,7 @@ t <- 0
 
 * **After running each step, write at least one sentence interpreting or describing the result directly in this R Markdown file, in the "Result" placeholder below each code chunk.**
 
-* Once you finish, please knit and upload that knitted file to the corresponding D2L dropbox. 
+* Once you finish, please knit this file to Word format and upload that knitted file to the corresponding D2L Brightspace dropbox. You can stop when you reach the note that says "EVERYTHING BELOW THIS POINT IS OPTIONAL. YOU CAN STOP WORKING HERE AND SUBMIT NOW."
 
 For most of this tutorial, you will run the code below in an R script or R markdown file in RStudio on your own computer. You will also make minor modifications to this code.
 
@@ -247,7 +249,7 @@ Activity summary:
 tree1 <- rpart(math ~ read + write + socst + gender_male + race_asian + race_hispanic +
                  race_white + ses_middle + ses_high + schtyp_private + prog_academic +
                  prog_vocational,
-               data = dtrain, method = 'anova')
+               data = dtrain, method = 'anova', cp=0.005)
 # MODIFY. Complete the next step (visualize the tree) and then come back to this
 # and try removing some predictors. For example, try removing read and write
 # to see if background variables alone can predict math performance.
@@ -268,6 +270,10 @@ fancyRpartPlot(tree1, caption = "Regression Tree")
 ```
 
 Result: 
+
+
+
+
 
 #### Test model
 
@@ -293,7 +299,7 @@ Result:
 **Step `r t<-t+1; t`**: Make confusion matrix.
 
 ```{r}
-PredictionCutoff <- 45 # MODIFY. Compare values in the 43-47 range.
+PredictionCutoff <- 48 # MODIFY. Compare values in the 43-47 range.
 
 dtest$tree1.pred.passed <- ifelse(dtest$tree1.pred > PredictionCutoff, 1, 0)
 
@@ -301,6 +307,16 @@ dtest$tree1.pred.passed <- ifelse(dtest$tree1.pred > PredictionCutoff, 1, 0)
 ```
 
 Result: 
+
+6 people truly failed and were correctly predicted to fail (true positives)
+9 people truly passed but were incorrectly predicted to fail (false negative)
+5 people truly failed but were incorrectly predicted to pass (false positives)
+30 people truly passed and were correctly predicted to pass (true negative)
+
+define:
+
+positive = someone who fails (and someone who HAS a disease) = bad outcome
+negative = someone who passes (and someone who does NOT have a disease) = good outcome
 
 **Step `r t<-t+1; t`**: Calculate accuracy
 
@@ -332,6 +348,9 @@ Result:
 BE SURE TO DOUBLE-CHECK THE CALCULATIONS ABOVE MANUALLY!
 
 **Step `r t<-t+1; t`**: **It is very important** for you, the data analyst, to modify the 45 cutoff assigned as `PredictionCutoff` above to see how you can change the predictions made by the model. Write down what you observe as you change this value and re-run the confusion matrix, accuracy, sensitivity, and specificity code above. What are the implications of your manual modification of this cutoff? *Remind your instructors to discuss this with you, in case they forget!*
+
+
+**EVERYTHING BELOW THIS POINT IS OPTIONAL. YOU CAN STOP WORKING HERE AND SUBMIT NOW.**
 
 # Decision tree model -- classification tree
 
