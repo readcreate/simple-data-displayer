@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What does it mean to "control for" something?</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1E2A44; --muted:#5B6478; --paper:#F7F8FA; --line:#DCE0E7; --prog:#2A7F7A; --none:#8A93A3; --pencil:#E3A72F; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:18px/1.65 "Atkinson Hyperlegible", system-ui, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:48px 22px 64px; }
+  h1, h2 { font-family:"Bricolage Grotesque", system-ui, sans-serif; line-height:1.15; }
+  h1 { font-size:clamp(2rem,6vw,2.9rem); font-weight:800; margin:0 0 12px; }
+  h2 { font-size:1.35rem; font-weight:600; margin:44px 0 8px; }
+  p { margin:0 0 14px; }
+  .lede { font-size:1.15rem; color:var(--muted); }
+  .rq { margin:28px 0 8px; padding:18px 22px; background:#fff; border:2px solid var(--ink); border-radius:14px; box-shadow:6px 6px 0 var(--pencil); }
+  .rq b { display:block; font-size:.9rem; color:var(--muted); font-weight:400; margin-bottom:4px; }
+  .rq span { font-size:1.2rem; font-weight:700; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin:16px 0; }
+  .legend { display:flex; flex-wrap:wrap; gap:18px; font-size:.9rem; color:var(--muted); margin-bottom:12px; }
+  .legend i { display:inline-block; width:14px; height:14px; border-radius:50%; vertical-align:-2px; margin-right:6px; }
+  .group { margin:10px 0; }
+  .group-name { font-weight:700; font-size:.95rem; margin-bottom:4px; }
+  .kids { display:flex; flex-wrap:wrap; gap:6px; }
+  .kid { width:22px; height:22px; border-radius:50%; }
+  .row { display:grid; grid-template-columns:120px 1fr 44px; gap:10px; align-items:center; margin:8px 0; font-size:.95rem; }
+  .track { background:#EEF0F4; border-radius:6px; height:22px; overflow:hidden; }
+  .bar { height:100%; border-radius:6px; }
+  .num { font-weight:700; text-align:right; }
+  .grade { margin-top:14px; padding-top:10px; border-top:1px dashed var(--line); }
+  .grade:first-of-type { border-top:0; margin-top:0; padding-top:0; }
+  .grade h3 { font-size:1rem; margin:0 0 4px; }
+  .gap { display:inline-block; background:#FDF3DF; color:#7A5410; border-radius:6px; padding:1px 8px; font-weight:700; }
+  .takeaway { background:var(--ink); color:#fff; border-radius:14px; padding:20px 22px; margin-top:44px; }
+  .takeaway h2 { margin-top:0; color:#fff; }
+  details { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin-top:16px; }
+  summary { cursor:pointer; font-weight:700; }
+  summary:focus-visible { outline:3px solid var(--pencil); outline-offset:3px; }
+  .data-actions { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
+  .data-actions button { font:inherit; font-size:.95rem; font-weight:700; padding:8px 16px; border-radius:8px; border:2px solid var(--ink); background:#fff; color:var(--ink); cursor:pointer; }
+  .data-actions button:hover { background:#EEF0F4; }
+  .data-actions button:focus-visible { outline:3px solid var(--pencil); outline-offset:2px; }
+  .status { font-size:.9rem; color:var(--prog); align-self:center; }
+  .table-wrap { max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  table { width:100%; border-collapse:collapse; font-size:.95rem; }
+  th, td { padding:6px 14px; text-align:left; border-bottom:1px solid var(--line); }
+  th { position:sticky; top:0; background:#EEF0F4; }
+  code { background:#EEF0F4; padding:1px 6px; border-radius:4px; font-size:.9em; }
+  .code { position:relative; margin:10px 0 0; }
+  .code pre, pre.out { margin:0; padding:12px 14px; border-radius:6px; overflow-x:auto; font:14px/1.5 ui-monospace, Menlo, Consolas, monospace; color:var(--ink); }
+  .code pre { background:#F1F3F6; border:1px solid var(--line); padding-right:70px; }
+  .code pre code { background:none; padding:0; border-radius:0; font-size:inherit; }
+  pre.out { background:#fff; border:1px solid var(--line); margin:6px 0 14px; }
+  .copy-code { position:absolute; top:6px; right:6px; font:inherit; font-size:.8rem; padding:3px 8px; border-radius:4px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; }
+  .copy-code:focus-visible { outline:3px solid var(--pencil); outline-offset:2px; }
+  @media (max-width:480px) { .row { grid-template-columns:96px 1fr 38px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>What does it mean to "control for" something?</h1>
+  <p class="lede">A plain-language example from an elementary school. No math needed.</p>
+
+  <div class="rq"><b>Research question</b><span>Does a new reading program improve students' reading scores?</span></div>
+
+  <h2>The setup</h2>
+  <p>A school tries a new reading program. Some students join it and some don't. At the end of the year, everyone takes the same reading test.</p>
+
+  <h2>First look: compare the two groups</h2>
+  <div class="panel">
+    <div class="row"><span>Program</span><div class="track"><div class="bar" style="width:78%;background:var(--prog)"></div></div><span class="num">78</span></div>
+    <div class="row"><span>No program</span><div class="track"><div class="bar" style="width:61%;background:var(--none)"></div></div><span class="num">61</span></div>
+  </div>
+  <p>The program group scores <span class="gap">17 points higher</span>. Looks like a big win. But there's a catch.</p>
+
+  <h2>The catch: who is in each group?</h2>
+  <div class="panel">
+    <div class="legend"><span><i style="background:var(--ink)"></i>5th grader</span><span><i style="background:#C9CFDA"></i>2nd grader</span></div>
+    <div class="group"><div class="group-name">Program (20 students)</div><div class="kids" id="prog"></div></div>
+    <div class="group"><div class="group-name">No program (20 students)</div><div class="kids" id="none"></div></div>
+  </div>
+  <p>The program group is mostly 5th graders. The other group is mostly 2nd graders. Older kids read better anyway, so some of that 17-point gap is really just an age difference, not the program.</p>
+
+  <h2>Controlling for grade</h2>
+  <p>To control for grade, we hold it constant: compare 2nd graders only to 2nd graders, and 5th graders only to 5th graders.</p>
+  <div class="panel">
+    <div class="grade"><h3>2nd graders</h3>
+      <div class="row"><span>Program</span><div class="track"><div class="bar" style="width:60%;background:var(--prog)"></div></div><span class="num">60</span></div>
+      <div class="row"><span>No program</span><div class="track"><div class="bar" style="width:55%;background:var(--none)"></div></div><span class="num">55</span></div>
+    </div>
+    <div class="grade"><h3>5th graders</h3>
+      <div class="row"><span>Program</span><div class="track"><div class="bar" style="width:84%;background:var(--prog)"></div></div><span class="num">84</span></div>
+      <div class="row"><span>No program</span><div class="track"><div class="bar" style="width:79%;background:var(--none)"></div></div><span class="num">79</span></div>
+    </div>
+  </div>
+  <p>Within each grade, program students score <span class="gap">5 points higher</span>. The program still helps, but much less than the first look suggested. The other 12 points were age, not the program.</p>
+
+  <div class="takeaway">
+    <h2>The takeaway</h2>
+    <p>Controlling for something means comparing like with like, so a difference you don't care about (here, grade) can't sneak into the answer to the question you do care about (does the program work?).</p>
+  </div>
+
+  <details>
+    <summary>Check yourself: what else might you control for?</summary>
+    <p style="margin-top:10px">Anything that differs between the groups and also affects reading scores. Examples: how well students read at the start of the year, whether English is their first language, or which teacher they have.</p>
+  </details>
+
+  <h2>Try it yourself: the dataset</h2>
+  <p>These are the 40 students behind the example. Copy the data into a spreadsheet, or download it as a CSV to use in R, SPSS, or Excel. The averages will match the numbers above.</p>
+  <p>Columns: <code>student_id</code>, <code>grade</code> (2 or 5), <code>program</code> (1 = in program, 0 = not), <code>reading_score</code>.</p>
+  <div class="data-actions">
+    <button type="button" id="copyBtn">Copy data</button>
+    <button type="button" id="dlBtn">Download CSV</button>
+    <span class="status" id="status" role="status"></span>
+  </div>
+  <div class="table-wrap"><table id="dataTable"><thead><tr><th>student_id</th><th>grade</th><th>program</th><th>reading_score</th></tr></thead><tbody></tbody></table></div>
+  <p style="margin-top:14px;font-size:.95rem;color:var(--muted)">Check: average score by <code>program</code> gives 78 vs 61. Average by <code>program</code> within each <code>grade</code> gives 60 vs 55 and 84 vs 79. A regression of <code>reading_score</code> on <code>program</code> and <code>grade</code> gives a program effect of 5.</p>
+
+  <h2>Checking this in R</h2>
+  <p>Step 1: load the data. The easiest way is to paste this code, which builds the dataset directly in R.</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>d &lt;- data.frame(
+  student_id = c(&quot;S01&quot;, &quot;S02&quot;, &quot;S03&quot;, &quot;S04&quot;, &quot;S05&quot;, &quot;S06&quot;, &quot;S07&quot;, &quot;S08&quot;, &quot;S09&quot;, &quot;S10&quot;,
+    &quot;S11&quot;, &quot;S12&quot;, &quot;S13&quot;, &quot;S14&quot;, &quot;S15&quot;, &quot;S16&quot;, &quot;S17&quot;, &quot;S18&quot;, &quot;S19&quot;, &quot;S20&quot;,
+    &quot;S21&quot;, &quot;S22&quot;, &quot;S23&quot;, &quot;S24&quot;, &quot;S25&quot;, &quot;S26&quot;, &quot;S27&quot;, &quot;S28&quot;, &quot;S29&quot;, &quot;S30&quot;,
+    &quot;S31&quot;, &quot;S32&quot;, &quot;S33&quot;, &quot;S34&quot;, &quot;S35&quot;, &quot;S36&quot;, &quot;S37&quot;, &quot;S38&quot;, &quot;S39&quot;, &quot;S40&quot;),
+  grade = c(5, 5, 5, 5, 5, 5, 2, 2, 5, 5,
+    5, 2, 2, 5, 5, 5, 2, 2, 2, 2,
+    5, 2, 5, 2, 5, 5, 2, 2, 2, 5,
+    2, 5, 2, 5, 2, 2, 2, 2, 5, 2),
+  program = c(1, 0, 1, 1, 1, 1, 0, 0, 1, 1,
+    0, 1, 0, 1, 0, 1, 0, 0, 0, 0,
+    1, 0, 1, 0, 0, 1, 1, 1, 0, 1,
+    0, 0, 0, 1, 0, 1, 1, 0, 1, 0),
+  reading_score = c(76, 73, 84, 92, 87, 82, 58, 49, 80, 83,
+    85, 54, 56, 86, 81, 90, 50, 59, 55, 52,
+    89, 60, 79, 54, 79, 85, 60, 58, 61, 88,
+    57, 77, 51, 78, 63, 66, 62, 53, 81, 47)
+)</code></pre></div>
+  <p>Or, if you downloaded the CSV above, read it in instead:</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>d &lt;- read.csv(&quot;reading_program_data.csv&quot;)</code></pre></div>
+  <p>Confirm the columns:</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>names(d)</code></pre></div>
+  <pre class="out">## [1] &quot;student_id&quot;    &quot;grade&quot;         &quot;program&quot;       &quot;reading_score&quot;</pre>
+
+  <p>Step 2: average score for each combination of program and grade. This is "controlling for grade" done by hand.</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>tapply(d$reading_score, list(program = d$program, grade = d$grade), mean)</code></pre></div>
+  <pre class="out">##        grade
+## program  2  5
+##       0 55 79
+##       1 60 84</pre>
+  <p>Within each grade, program students (1) score 5 points higher than non-program students (0).</p>
+
+  <p>Step 3: regression without controlling for grade.</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>summary(regNoControl &lt;- lm(reading_score ~ program, data=d))</code></pre></div>
+  <pre class="out">## 
+## Call:
+## lm(formula = reading_score ~ program, data = d)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -24.00  -8.25   0.00   8.25  24.00 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   61.000      2.590   23.55  &lt; 2e-16 ***
+## program       17.000      3.663    4.64 4.05e-05 ***
+## ---
+## Signif. codes:  0 &#x27;***&#x27; 0.001 &#x27;**&#x27; 0.01 &#x27;*&#x27; 0.05 &#x27;.&#x27; 0.1 &#x27; &#x27; 1
+## 
+## Residual standard error: 11.58 on 38 degrees of freedom
+## Multiple R-squared:  0.3617, Adjusted R-squared:  0.3449 
+## F-statistic: 21.53 on 1 and 38 DF,  p-value: 4.055e-05</pre>
+  <p>The <code>program</code> estimate is 17, the misleading gap from the first look.</p>
+
+  <p>Step 4: regression controlling for grade.</p>
+  <div class="code"><button type="button" class="copy-code">Copy</button><pre><code>summary(regYesControl &lt;- lm(reading_score ~ program + grade, data=d))</code></pre></div>
+  <pre class="out">## 
+## Call:
+## lm(formula = reading_score ~ program + grade, data = d)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+##  -8.00  -3.25   0.00   3.25   8.00 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  39.0000     1.8482  21.101  &lt; 2e-16 ***
+## program       5.0000     1.6765   2.982  0.00504 ** 
+## grade         8.0000     0.5588  14.315  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#x27;***&#x27; 0.001 &#x27;**&#x27; 0.01 &#x27;*&#x27; 0.05 &#x27;.&#x27; 0.1 &#x27; &#x27; 1
+## 
+## Residual standard error: 4.591 on 37 degrees of freedom
+## Multiple R-squared:  0.9024, Adjusted R-squared:  0.8971 
+## F-statistic:   171 on 2 and 37 DF,  p-value: &lt; 2.2e-16</pre>
+  <p>Adding <code>grade</code> to the model holds it constant. The <code>program</code> estimate drops to 5, matching the within-grade comparison. The <code>grade</code> estimate of 8 means each grade level adds about 8 points (24 points from 2nd to 5th grade).</p>
+</main>
+<script>
+  function fill(id, fifth, second) {
+    const el = document.getElementById(id);
+    for (let i = 0; i < fifth; i++) el.insertAdjacentHTML('beforeend', '<span class="kid" style="background:var(--ink)" aria-hidden="true"></span>');
+    for (let i = 0; i < second; i++) el.insertAdjacentHTML('beforeend', '<span class="kid" style="background:#C9CFDA" aria-hidden="true"></span>');
+    el.setAttribute('aria-label', fifth + ' fifth graders and ' + second + ' second graders');
+  }
+  fill('prog', 15, 5);
+  fill('none', 5, 15);
+  const data = [
+    ["S01",5,1,76],
+    ["S02",5,0,73],
+    ["S03",5,1,84],
+    ["S04",5,1,92],
+    ["S05",5,1,87],
+    ["S06",5,1,82],
+    ["S07",2,0,58],
+    ["S08",2,0,49],
+    ["S09",5,1,80],
+    ["S10",5,1,83],
+    ["S11",5,0,85],
+    ["S12",2,1,54],
+    ["S13",2,0,56],
+    ["S14",5,1,86],
+    ["S15",5,0,81],
+    ["S16",5,1,90],
+    ["S17",2,0,50],
+    ["S18",2,0,59],
+    ["S19",2,0,55],
+    ["S20",2,0,52],
+    ["S21",5,1,89],
+    ["S22",2,0,60],
+    ["S23",5,1,79],
+    ["S24",2,0,54],
+    ["S25",5,0,79],
+    ["S26",5,1,85],
+    ["S27",2,1,60],
+    ["S28",2,1,58],
+    ["S29",2,0,61],
+    ["S30",5,1,88],
+    ["S31",2,0,57],
+    ["S32",5,0,77],
+    ["S33",2,0,51],
+    ["S34",5,1,78],
+    ["S35",2,0,63],
+    ["S36",2,1,66],
+    ["S37",2,1,62],
+    ["S38",2,0,53],
+    ["S39",5,1,81],
+    ["S40",2,0,47]
+  ];
+  const header = ['student_id','grade','program','reading_score'];
+  const tbody = document.querySelector('#dataTable tbody');
+  data.forEach(r => tbody.insertAdjacentHTML('beforeend', '<tr>' + r.map(v => '<td>' + v + '</td>').join('') + '</tr>'));
+  const status = document.getElementById('status');
+  function say(msg) { status.textContent = msg; setTimeout(() => status.textContent = '', 2500); }
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const tsv = [header, ...data].map(r => r.join('\t')).join('\n');
+    try { await navigator.clipboard.writeText(tsv); say('Copied. Paste into any spreadsheet.'); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = tsv; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); say('Copied. Paste into any spreadsheet.'); } catch (e2) { say('Copy failed. Select the table and copy it instead.'); }
+      ta.remove();
+    }
+  });
+  document.getElementById('dlBtn').addEventListener('click', () => {
+    const csv = [header, ...data].map(r => r.join(',')).join('\n') + '\n';
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    const a = document.createElement('a'); a.href = url; a.download = 'reading_program_data.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    say('Downloaded reading_program_data.csv');
+  });
+  document.querySelectorAll('.copy-code').forEach(btn => btn.addEventListener('click', async () => {
+    const txt = btn.nextElementSibling.textContent;
+    try { await navigator.clipboard.writeText(txt); }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e2) {} ta.remove(); }
+    btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy', 2000);
+  }));
+</script>
+</body>
+</html>
